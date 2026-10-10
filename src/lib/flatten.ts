@@ -175,8 +175,8 @@ async function svgMarkup(el: SVGSVGElement): Promise<string> {
   await Promise.all(jobs)
   const cs = getComputedStyle(el)
   if (!clone.getAttribute('viewBox')) clone.setAttribute('viewBox', `0 0 ${px(cs.width)} ${px(cs.height)}`)
-  clone.removeAttribute('style')
-  clone.removeAttribute('class')
+  // Placement and size come from the box it is drawn into.
+  for (const a of ['style', 'class', 'width', 'height', 'x', 'y']) clone.removeAttribute(a)
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
   clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
   let s = new XMLSerializer().serializeToString(clone)
