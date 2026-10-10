@@ -195,3 +195,42 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ins-label { font-size: 11px; color: var(--ui-muted); }
 .ins-swap { display: flex; align-items: center; gap: 6px; }
 .ins-swatch { flex: none; width: 18px; height: 18px; border-radius: 4px; border: 1px solid #0002; }
+
+/* Exploration */
+.explore { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; padding-bottom: 60px; }
+.ex-composer { background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.ex-head h2 { margin: 0 0 2px; font-size: 18px; letter-spacing: -0.01em; }
+.ex-head p { margin: 0; color: var(--ui-muted); }
+.ex-composer .seg { align-self: flex-start; }
+.ex-prompt { width: 100%; padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: 8px; resize: vertical; background: #fff; }
+.ex-prompt:focus { outline: 2px solid #2b45f533; border-color: var(--ui-accent); }
+.ex-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ex-count { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-muted); }
+.ex-count select, .ex-use { padding: 4px 6px; border: 1px solid var(--ui-line); border-radius: 6px; background: #fff; }
+.ex-note { padding: 10px 12px; border-radius: 8px; background: #f6f6f3; color: var(--ui-ink); }
+.ex-note code { font-size: 12px; background: #fff; padding: 1px 4px; border-radius: 4px; border: 1px solid var(--ui-line); }
+.ex-note.is-error { background: #fdeeee; color: #8c2020; }
+.ex-empty { text-align: center; color: var(--ui-muted); padding: 40px 0; }
+.ex-batch { display: flex; flex-direction: column; gap: 10px; }
+.ex-batch-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.ex-batch-prompt { color: var(--ui-ink); }
+.ex-batch-at { color: var(--ui-muted); font-size: 12px; }
+.ex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.ex-grid.ex-logos { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.ex-card { background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ex-card h3 { margin: 0; font-size: 15px; letter-spacing: -0.01em; }
+.ex-card p, .ex-card ul { margin: 0; }
+.ex-card ul { padding-left: 18px; }
+.ex-lead { font-weight: 500; }
+.ex-why { color: var(--ui-muted); font-size: 12px; }
+.ex-card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; }
+.ex-card dt { color: var(--ui-muted); font-size: 12px; }
+.ex-card dd { margin: 0; }
+.ex-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--ui-line); }
+.ex-link { border: 0; background: none; padding: 2px 0; color: var(--ui-accent); font-weight: 500; cursor: pointer; }
+.ex-link:disabled { color: var(--ui-muted); cursor: default; }
+.ex-swatches { display: flex; height: 44px; border-radius: 8px; overflow: hidden; }
+.ex-swatch { flex: 1; border: 0; cursor: copy; }
+.ex-logo-views { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ex-logo-view { aspect-ratio: 1; border: 1px solid var(--ui-line); border-radius: 8px; display: grid; place-items: center; padding: 18%; background: #fff; }
+.ex-logo-view img { width: 100%; height: 100%; object-fit: contain; }
