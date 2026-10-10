@@ -15,14 +15,16 @@ import { EditContext, overlayImageIds, type EditApi, type EditPatch, type Select
 import { EditKeys, Inspector } from './edit/Inspector'
 import { usePanZoom, ZOOM_MAX, ZOOM_MIN } from './lib/panzoom'
 import { canvasPages, pngZip, scenes, svgZip, vectorPdf } from './lib/editable'
+import { Explore } from './explore/Explore'
 
-type View = 'guidelines' | 'assets' | 'deck' | 'print'
+type View = 'guidelines' | 'assets' | 'deck' | 'print' | 'explore'
 
 const VIEWS: { id: View; label: string; title: string }[] = [
   { id: 'guidelines', label: 'Guidelines', title: 'Brand Guidelines' },
   { id: 'assets', label: 'Brand Assets', title: 'Brand Assets' },
   { id: 'deck', label: 'Presentation', title: 'Brand Presentation' },
   { id: 'print', label: 'Print files', title: 'Stationery Print Files' },
+  { id: 'explore', label: 'Exploration', title: 'Exploration' },
 ]
 
 function pageSize(view: View, b: Brand) {
@@ -43,7 +45,8 @@ export default function App() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const pan = usePanZoom(canvasRef, zoom, setZoom)
   const history = useRef<{ snap: EditPatch; at: number; keys: string }[]>([])
-  const editingLayout = layoutMode && view !== 'print'
+  const pages = view !== 'explore'
+  const editingLayout = layoutMode && view !== 'print' && pages
 
   const editApi: EditApi = {
     editing: editingLayout,
@@ -231,7 +234,7 @@ export default function App() {
               Crop marks
             </label>
           )}
-          {view !== 'print' && (
+          {view !== 'print' && pages && (
             <button
               className={`btn ghost edit-toggle ${layoutMode ? 'on' : ''}`}
               onClick={() => {
@@ -243,13 +246,15 @@ export default function App() {
               {layoutMode ? 'Done editing' : 'Edit layout'}
             </button>
           )}
-          <label className="zoom">
-            <span>Zoom</span>
-            <input type="range" min={ZOOM_MIN} max={ZOOM_MAX} step={0.05} value={zoom} onChange={(e) => pan.zoomTo(Number(e.target.value))} />
-            <button className="zoom-pct" onClick={() => pan.zoomTo(1)} title="Zoom to 100% (⌘0). ⌘ + scroll or pinch zooms, Space + drag pans">
-              {Math.round(zoom * 100)}%
-            </button>
-          </label>
+          {pages && (
+            <label className="zoom">
+              <span>Zoom</span>
+              <input type="range" min={ZOOM_MIN} max={ZOOM_MAX} step={0.05} value={zoom} onChange={(e) => pan.zoomTo(Number(e.target.value))} />
+              <button className="zoom-pct" onClick={() => pan.zoomTo(1)} title="Zoom to 100% (⌘0). ⌘ + scroll or pinch zooms, Space + drag pans">
+                {Math.round(zoom * 100)}%
+              </button>
+            </label>
+          )}
           <div className="spacer" />
           {busy && <span className="busy">{busy}</span>}
           <button className="btn ghost" onClick={() => navigator.clipboard.writeText(tokensCss(brand))} title="Copy CSS variables">
@@ -258,40 +263,42 @@ export default function App() {
           <button className="btn ghost" disabled={!!busy} onClick={exportZip}>
             Download logo package
           </button>
-          <div className="export-menu">
-            <button className="btn" disabled={!!busy} onClick={() => setExportMenu((m) => !m)}>
-              Export ▾
-            </button>
-            {exportMenu && (
-              <div className="export-pop" onMouseLeave={() => setExportMenu(false)}>
-                <button
-                  onClick={() => {
-                    setExportMenu(false)
-                    exportPdf()
-                  }}
-                >
-                  <b>PDF to share</b>
-                  <span>Opens the print dialog. Best for sending to clients.</span>
-                </button>
-                <button onClick={() => exportFor('pdf')}>
-                  <b>Editable PDF</b>
-                  <span>Live text, vector shapes and exact colours, for Illustrator.</span>
-                </button>
-                <button onClick={() => exportFor('ai')}>
-                  <b>Illustrator file (.ai)</b>
-                  <span>The editable PDF as an .ai file. Every page is an artboard.</span>
-                </button>
-                <button onClick={() => exportFor('svg')}>
-                  <b>SVG pages (.zip)</b>
-                  <span>One SVG per page. Text uses the fonts installed on your Mac.</span>
-                </button>
-                <button onClick={() => exportFor('png')}>
-                  <b>PNG pages (.zip)</b>
-                  <span>Every page as a 300 dpi PNG, ready for slides.</span>
-                </button>
-              </div>
-            )}
-          </div>
+          {pages && (
+            <div className="export-menu">
+              <button className="btn" disabled={!!busy} onClick={() => setExportMenu((m) => !m)}>
+                Export ▾
+              </button>
+              {exportMenu && (
+                <div className="export-pop" onMouseLeave={() => setExportMenu(false)}>
+                  <button
+                    onClick={() => {
+                      setExportMenu(false)
+                      exportPdf()
+                    }}
+                  >
+                    <b>PDF to share</b>
+                    <span>Opens the print dialog. Best for sending to clients.</span>
+                  </button>
+                  <button onClick={() => exportFor('pdf')}>
+                    <b>Editable PDF</b>
+                    <span>Live text, vector shapes and exact colours, for Illustrator.</span>
+                  </button>
+                  <button onClick={() => exportFor('ai')}>
+                    <b>Illustrator file (.ai)</b>
+                    <span>The editable PDF as an .ai file. Every page is an artboard.</span>
+                  </button>
+                  <button onClick={() => exportFor('svg')}>
+                    <b>SVG pages (.zip)</b>
+                    <span>One SVG per page. Text uses the fonts installed on your Mac.</span>
+                  </button>
+                  <button onClick={() => exportFor('png')}>
+                    <b>PNG pages (.zip)</b>
+                    <span>Every page as a 300 dpi PNG, ready for slides.</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <EditContext.Provider value={editApi}>
           <div
@@ -304,6 +311,7 @@ export default function App() {
             {view === 'assets' && <Assets brand={brand} />}
             {view === 'deck' && <Deck brand={brand} />}
             {view === 'print' && <Print brand={brand} marks={marks} />}
+            {view === 'explore' && <Explore brand={brand} update={update} />}
           </div>
           <Inspector />
           <EditKeys undo={undo} />

@@ -196,6 +196,8 @@ export interface Brand {
   hiddenSlides?: string[]
   /** Edits to items on generated pages (moved, scaled, retyped, recoloured), by page key then item path. */
   tweaks?: Record<string, Record<string, Tweak>>
+  /** AI explorations from the Exploration tab, newest first. */
+  explorations?: Exploration[]
   // Presentation deck
   client: string
   studio: string
@@ -266,4 +268,43 @@ export interface CustomSlide {
   /** Page key this slide follows; '^' for the very start. */
   after: string
   bg: string
+}
+
+// ---------------------------------------------------------------------------
+// Exploration: ideas, concepts and logos generated from the brand kit.
+
+export type ExploreMode = 'ideas' | 'concepts' | 'logos'
+
+export interface IdeaItem {
+  title: string
+  summary: string
+  applications: string[]
+  why: string
+}
+
+export interface ConceptItem {
+  name: string
+  idea: string
+  rationale: string
+  tagline: string
+  palette: { name: string; hex: string; role: ColorRole }[]
+  headingFont: string
+  bodyFont: string
+  voice: string[]
+  imagery: string
+}
+
+export interface LogoItem {
+  name: string
+  concept: string
+  svg: string
+}
+
+export interface Exploration {
+  id: string
+  mode: ExploreMode
+  prompt: string
+  /** ISO time it was generated. */
+  at: string
+  items: (IdeaItem | ConceptItem | LogoItem)[]
 }
