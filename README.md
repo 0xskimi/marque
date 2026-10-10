@@ -106,7 +106,7 @@ The Exploration tab asks Claude for new directions built from everything in the 
 
 Add an optional direction ("warmer, more premium", "a monogram from the initials") and choose how many. Results are kept with the project, newest first. **Stop** cancels a run, and Claude stops with it.
 
-Claude follows the brand application skill in `skills/brand-application/SKILL.md`. Every `skills/<name>/SKILL.md` is added to Claude's instructions, so you can edit that file or drop in your own skills without touching the code. Requests go through the dev server (`server/explore.ts`) using Claude Opus 5.5, so the Exploration tab needs `npm run dev` and an internet connection. Each run is billed to your API key; logo runs think the longest.
+Claude follows the skills in `skills/`: a brand application skill (`skills/brand-application/SKILL.md`) and the brandkit skill (`skills/brandkit/SKILL.md`), which adds a positioning sentence, contrast checks, a two-family and six-colour limit, and the 24 px favicon test. Every `skills/<name>/SKILL.md` is added to Claude's instructions, so you can edit that file or drop in your own skills without touching the code. Requests go through the dev server (`server/explore.ts`) using Claude Opus 5.5, so the Exploration tab needs `npm run dev` and an internet connection. Each run is billed to your API key; logo runs think the longest.
 
 ## Photo mockups
 

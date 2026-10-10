@@ -121,7 +121,7 @@ export function Explore({ brand, update }: { brand: Brand; update: (p: Partial<B
         <div className="ex-head">
           <div>
             <h2>Exploration</h2>
-            <p>Ideas, concepts and logos from {brand.name || 'this brand'}’s kit, made by Claude with the brand application skill.</p>
+            <p>Ideas, concepts and logos from {brand.name || 'this brand'}’s kit, made by Claude with your brand skills.</p>
           </div>
         </div>
         <div className="seg seg-wrap">

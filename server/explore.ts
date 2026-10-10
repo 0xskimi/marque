@@ -143,7 +143,8 @@ async function explore(apiKey: string | undefined, body: Body, send: (line: obje
   const system =
     `${skills()}\n\n---\n\n` +
     'You work inside Marque, a tool a brand designer uses to build brand guidelines and assets for clients. ' +
-    'The designer asks you for explorations; they will choose, refine and present them. Apply the brand application skill above to everything you make.'
+    'The designer asks you for explorations; they will choose, refine and present them. Apply the skills above to everything you make. ' +
+    'Where a skill describes its own deliverable or output format (a brand board, a written spec), use its method and quality rules but answer in the format the task asks for.'
 
   const parts = [
     `<brand_kit>\n${body.brand}\n</brand_kit>`,
