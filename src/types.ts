@@ -194,6 +194,8 @@ export interface Brand {
   customSlides?: CustomSlide[]
   /** Generated pages switched off from the canvas, by page key. */
   hiddenSlides?: string[]
+  /** Edits to items on generated pages (moved, scaled, retyped, recoloured), by page key then item path. */
+  tweaks?: Record<string, Record<string, Tweak>>
   // Presentation deck
   client: string
   studio: string
@@ -207,7 +209,7 @@ export interface Brand {
 // Artboard editing: layers you place yourself on top of any page, and custom slides.
 
 export type DocId = 'guidelines' | 'assets' | 'deck'
-export type LayerKind = 'image' | 'text' | 'rect' | 'logo'
+export type LayerKind = 'image' | 'text' | 'rect' | 'logo' | 'svg'
 
 export interface Layer {
   id: string
@@ -240,6 +242,22 @@ export interface Layer {
   // logo
   slot?: LogoSlot
   version?: 'auto' | 'full' | 'white' | 'black'
+  // svg: artwork copied from a generated page, as standalone SVG markup
+  svg?: string
+}
+
+/** A change to one item of a generated page. The page still updates from the sidebar underneath. */
+export interface Tweak {
+  /** Offset in mm. */
+  dx?: number
+  dy?: number
+  /** Uniform scale around the item's centre. */
+  s?: number
+  /** Replacement text (only for items that are plain text). */
+  text?: string
+  /** Colour swaps inside the item, old hex to new hex. */
+  colors?: Record<string, string>
+  hide?: boolean
 }
 
 export interface CustomSlide {

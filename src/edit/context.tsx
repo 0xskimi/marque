@@ -4,7 +4,11 @@ import type { Brand, CustomSlide, Layer } from '../types'
 export interface Selection {
   page: string
   layer?: string
+  /** An item of the generated page, by its path from the page element. */
+  el?: string
 }
+
+export type EditPatch = Pick<Partial<Brand>, 'overlays' | 'customSlides' | 'hiddenSlides' | 'tweaks'>
 
 export interface EditApi {
   editing: boolean
@@ -12,7 +16,7 @@ export interface EditApi {
   sel: Selection | null
   setSel: (s: Selection | null) => void
   /** Change the editable parts of the brand, with undo. */
-  commit: (patch: Pick<Partial<Brand>, 'overlays' | 'customSlides' | 'hiddenSlides'>) => void
+  commit: (patch: EditPatch) => void
 }
 
 export const EditContext = createContext<EditApi | null>(null)

@@ -11,9 +11,10 @@ import { ensureFont } from './lib/fonts'
 import { download, exportPackage, tokensCss } from './lib/export'
 import { packImages, unpackImages } from './lib/images'
 import { getLibrary, saveLibrary } from './lib/library'
-import { EditContext, overlayImageIds, type EditApi, type Selection } from './edit/context'
+import { EditContext, overlayImageIds, type EditApi, type EditPatch, type Selection } from './edit/context'
 import { EditKeys, Inspector } from './edit/Inspector'
 import { usePanZoom, ZOOM_MAX, ZOOM_MIN } from './lib/panzoom'
+import { canvasPages, pngZip, scenes, svgZip, vectorPdf } from './lib/editable'
 
 type View = 'guidelines' | 'assets' | 'deck' | 'print'
 
@@ -41,7 +42,7 @@ export default function App() {
   const [sel, setSel] = useState<Selection | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const pan = usePanZoom(canvasRef, zoom, setZoom)
-  const history = useRef<{ snap: Pick<Brand, 'overlays' | 'customSlides' | 'hiddenSlides'>; at: number; keys: string }[]>([])
+  const history = useRef<{ snap: EditPatch; at: number; keys: string }[]>([])
   const editingLayout = layoutMode && view !== 'print'
 
   const editApi: EditApi = {
@@ -55,7 +56,7 @@ export default function App() {
       const last = history.current[history.current.length - 1]
       const now = Date.now()
       if (!last || now - last.at > 700 || last.keys !== keys) {
-        history.current.push({ snap: { overlays: brand.overlays, customSlides: brand.customSlides, hiddenSlides: brand.hiddenSlides }, at: now, keys })
+        history.current.push({ snap: { overlays: brand.overlays, customSlides: brand.customSlides, hiddenSlides: brand.hiddenSlides, tweaks: brand.tweaks }, at: now, keys })
         if (history.current.length > 100) history.current.shift()
       } else last.at = now
       update(patch)
@@ -91,6 +92,42 @@ export default function App() {
     document.title = `${brand.name} ${VIEWS.find((v) => v.id === view)!.title}`
     window.print()
     document.title = prev
+  }
+
+  type Kind = 'pdf' | 'ai' | 'svg' | 'png'
+  const [exportMenu, setExportMenu] = useState(false)
+
+  /** Vector exports for Illustrator, and PNGs of every page. */
+  async function exportFor(kind: Kind) {
+    setExportMenu(false)
+    setSel(null)
+    const name = `${brand.name} ${VIEWS.find((v) => v.id === view)!.title}`
+    try {
+      setBusy('Preparing…')
+      await document.fonts.ready
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      const pages = canvasPages()
+      if (!pages.length) throw new Error('There are no pages to export.')
+      if (kind === 'png') {
+        download(await pngZip(pages, brand, name, setBusy), `${name} PNG.zip`)
+        return
+      }
+      const s = await scenes(pages, brand, setBusy)
+      if (kind === 'svg') {
+        download(await svgZip(s, name, setBusy), `${name} SVG.zip`)
+        return
+      }
+      const { blob, missingFonts } = await vectorPdf(s, brand, name, setBusy)
+      download(blob, kind === 'ai' ? `${name}.ai` : `${name} (editable).pdf`)
+      if (missingFonts.length)
+        alert(
+          `${missingFonts.join(', ')} couldn't be embedded, so that text uses Helvetica or Times in this file.\n\nUpload the font as a .ttf in Typography, or use the SVG export, where Illustrator picks up the fonts installed on your Mac.`,
+        )
+    } catch (e) {
+      alert(`Export failed: ${(e as Error).message}`)
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function exportZip() {
@@ -221,9 +258,40 @@ export default function App() {
           <button className="btn ghost" disabled={!!busy} onClick={exportZip}>
             Download logo package
           </button>
-          <button className="btn" disabled={!!busy} onClick={exportPdf}>
-            Export PDF
-          </button>
+          <div className="export-menu">
+            <button className="btn" disabled={!!busy} onClick={() => setExportMenu((m) => !m)}>
+              Export ▾
+            </button>
+            {exportMenu && (
+              <div className="export-pop" onMouseLeave={() => setExportMenu(false)}>
+                <button
+                  onClick={() => {
+                    setExportMenu(false)
+                    exportPdf()
+                  }}
+                >
+                  <b>PDF to share</b>
+                  <span>Opens the print dialog. Best for sending to clients.</span>
+                </button>
+                <button onClick={() => exportFor('pdf')}>
+                  <b>Editable PDF</b>
+                  <span>Live text, vector shapes and exact colours, for Illustrator.</span>
+                </button>
+                <button onClick={() => exportFor('ai')}>
+                  <b>Illustrator file (.ai)</b>
+                  <span>The editable PDF as an .ai file. Every page is an artboard.</span>
+                </button>
+                <button onClick={() => exportFor('svg')}>
+                  <b>SVG pages (.zip)</b>
+                  <span>One SVG per page. Text uses the fonts installed on your Mac.</span>
+                </button>
+                <button onClick={() => exportFor('png')}>
+                  <b>PNG pages (.zip)</b>
+                  <span>Every page as a 300 dpi PNG, ready for slides.</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <EditContext.Provider value={editApi}>
           <div

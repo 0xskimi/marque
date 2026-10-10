@@ -29,7 +29,11 @@ npm run dev      # opens http://localhost:5173
    - **Brand Assets**: cover, logo, design approach, then a slide per mockup (business cards, letterhead and envelope, folder, ID card and lanyard, polo, cap and mug, flask and notebook, tote and shopping bag, phone, signage, email signature) and your photo mockups.
    - **Presentation**: the concept deck for the client pitch.
    - **Print files**: business card front and back, A4 letterhead and DL envelope at true size with 3 mm bleed and optional crop marks.
-4. **Export PDF** opens the print dialog. Choose *Save as PDF* and keep *Background graphics* on. Page sizes are set for you, including a different size per sheet on the Print files tab (use Chrome).
+4. **Export ▾** gives you every format of the open tab:
+   - **PDF to share** opens the print dialog. Choose *Save as PDF* and keep *Background graphics* on. Page sizes are set for you, including a different size per sheet on the Print files tab (use Chrome).
+   - **Editable PDF** and **Illustrator file (.ai)** are built for editing in Illustrator (see below).
+   - **SVG pages (.zip)**: one SVG per page.
+   - **PNG pages (.zip)**: every page as a 300 dpi PNG, ready to drop into slides.
 5. **Download logo package** builds a zip with:
    - every logo in full colour, black, white and one-colour versions, split into:
      - **Digital (RGB)**: SVG, PNG at 500, 1000 and 2000 px, and JPG
@@ -51,17 +55,43 @@ Outline live text and expand gradients, clipping masks and `<use>` symbols befor
 
 ## Editing pages like an artboard
 
-Click **Edit layout** above any document (Guidelines, Brand Assets or Presentation). Each page gets a bar with:
+Click **Edit layout** above any document (Guidelines, Brand Assets or Presentation).
 
-- **Text, Image, Shape, Logo**: add a free layer on top of the page. Drag to move and drag the handles to resize. Layers snap to the page centre and edges and to each other; hold Alt to turn snapping off. Double-click text to type, or double-click an image to replace it.
+**Anything on a page can be edited.** Click an item (a heading, a paragraph, a logo, a swatch, a mockup) to select it, then:
+
+- drag it to move it, or drag a corner to scale it up or down;
+- double-click text to retype it in place, or edit it in the panel on the right;
+- change its colours in the panel: every colour the item uses is listed, and picking a new one swaps it;
+- drag it onto another page to move it there (it becomes a free layer on that page);
+- **Select parent** (or Shift + Enter) selects the group it sits in, **Make a layer** turns it into a free layer with full font controls, **Reset** undoes your edits to it, and **Hide** (or Delete) takes it off the page. **Show hidden items** in the page bar brings hidden items back.
+
+Arrows nudge the selected item by 0.5 mm (Shift for 5 mm). Edits sit on top of the generated page, so the page still updates from the sidebar underneath. Dragging near the top or bottom of the canvas scrolls it, so you can carry items to pages further away.
+
+Each page also gets a bar with:
+
+- **Text, Image, Shape, Logo**: add a free layer on top of the page. Drag to move and drag the handles to resize. Layers snap to the page centre and edges and to each other; hold Alt to turn snapping off. Double-click text to type, or double-click an image to replace it. Drag a layer onto another page to move it there.
 - **Add slide after**: insert your own slide. *Mockup with details* asks for a PNG or JPG (e.g. a mockup you made in Photoshop) and lays it out with an editable title, description and specs. There are also *Full-bleed image with caption*, *Two images* and *Blank artboard* templates.
 - **Hide slide**: leave a generated page out of the PDF. On your own slides the bar has the background colour, move up and down, and delete.
+- **PNG** and **.ai**: download just this page, as a 300 dpi PNG or as an editable Illustrator file.
 
 You can drop image files from Finder straight onto a page, or paste an image with ⌘V onto the selected page. The panel on the right edits the selected layer: position, size, font, size, weight, colour, alignment, image fit, corner radius, and front or back. Keys: Delete, arrows to nudge (Shift for bigger steps), ⌘D to duplicate, `]` and `[` to change the order, ⌘Z to undo and Esc to deselect.
 
 Layers and custom slides are saved with the project (and in *Save file*), and they export with the PDF. Generated content updates from the sidebar as before. To change a generated slide completely, hide it and add your own slide in its place.
 
 **Moving around the canvas** works like Figma. The sidebar stays put while the pages scroll. Hold Space and drag, or drag with the middle mouse button, to pan. Use ⌘ + scroll or a trackpad pinch to zoom on the pointer, and ⌘0, ⌘+ and ⌘− for 100%, zoom in and zoom out. Click the percentage next to the zoom slider to jump back to 100%.
+
+## Editing exports in Illustrator
+
+**Editable PDF** and **Illustrator file (.ai)** are written by Marque from the pages as they look on the canvas, with your edits:
+
+- Text stays live text, one text object per line, in your brand fonts. The fonts are embedded under their PostScript names (e.g. `SpaceGrotesk-Bold`), so with the fonts installed on your Mac Illustrator edits the text in the right typeface and weight.
+- Colours are the exact RGB values from your palette. Boxes, rules and swatches are plain vector shapes, and logos and SVG artwork stay vector paths.
+- Photos are placed at full resolution. Effects a PDF can't hold as simple shapes (drop shadows, rotated or clipped mockup scenes, gradients, blend modes) are placed as 300 dpi images of just that item, so nothing shifts.
+- The .ai file is the same PDF with an .ai extension, which Illustrator opens as an editable document. Each page is a separate page; when Illustrator asks which page to open, pick the one you want, or use the **.ai** button in a page's bar to download a single page.
+
+Fonts are fetched as TrueType files from Google Fonts through the dev server (`/__gfonts` in `vite.config.ts`), so run Marque with `npm run dev` and be online when exporting. Uploaded fonts are embedded when they are `.ttf` files. If a font can't be embedded, Marque tells you which one and that text falls back to Helvetica or Times in the PDF; the SVG export still names the font, and Illustrator uses your installed copy.
+
+**SVG pages** keep the same live text, colours and vectors, and leave the fonts to Illustrator.
 
 ## Photo mockups
 
@@ -89,5 +119,7 @@ Projects save automatically in the browser. Photos are stored in the browser's d
 - `src/lib/svg.ts`, `src/lib/pathdata.ts`: SVG cleanup, recolouring, rasterising, construction analysis
 - `src/lib/color.ts`: contrast, CMYK estimate, OKLCH ramps
 - `src/lib/export.ts`: logo package, ASE, ICO and tokens
-- `src/edit/`: artboard editing (layers, custom slides, inspector)
+- `src/edit/`: artboard editing (layers, custom slides, inspector); `src/edit/tweaks.ts` edits items of generated pages
+- `src/lib/flatten.ts`: reads a rendered page into boxes, text lines, images and SVG artwork
+- `src/lib/editable.ts`: editable PDF, .ai and SVG writers; `src/lib/raster.ts`: PNG pages and effects kept as images; `src/lib/fontfiles.ts`: TrueType fonts for embedding
 - `src/lib/vector.ts`: CMYK and Pantone PDF and EPS writers, print readiness checks
