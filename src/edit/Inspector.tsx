@@ -1,9 +1,10 @@
-import { useEffect, type ReactNode } from 'react'
-import type { Layer, LogoSlot } from '../types'
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
+import type { Layer, LogoSlot, Tweak } from '../types'
 import { LOGO_SLOTS } from '../types'
 import { normHex } from '../lib/color'
 import { importPhoto } from '../lib/images'
 import { layersOf, uid, useEdit, withLayers } from './context'
+import { colorsIn, elAt, isTextItem, itemText, layerFrom, pathOf, tweaksOf, withTweak } from './tweaks'
 import { imageLayer, pickImages } from './Layers'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -68,14 +69,119 @@ export function useLayerActions() {
   }
 }
 
+/** The selected item of a generated page, its element and its edits. */
+export function useGenActions() {
+  const edit = useEdit()
+  if (!edit?.sel?.el) return null
+  const { brand, sel, commit, setSel } = edit
+  const page = sel.page
+  const path = sel.el!
+  const root = document.querySelector<HTMLElement>(`.sheet[data-key="${CSS.escape(page)}"] > section`)
+  const el = root ? elAt(root, path) : null
+  const t = tweaksOf(brand, page)[path] ?? {}
+  return {
+    page,
+    path,
+    root,
+    el,
+    t,
+    patch: (p: Partial<Tweak>) => commit({ tweaks: withTweak(brand, page, path, { ...t, ...p }) }),
+    reset: () => commit({ tweaks: withTweak(brand, page, path, null) }),
+    parent: () => {
+      const p = el?.parentElement
+      if (root && p && p !== root && root.contains(p)) setSel({ page, el: pathOf(p, root)! })
+    },
+    /** Turn it into a free layer on the same page, with the full text controls. */
+    detach: async () => {
+      if (!el || !root) return
+      const sheet = root.parentElement as HTMLElement
+      const ov = sheet.querySelector(':scope > .layers')!.getBoundingClientRect()
+      const r = el.getBoundingClientRect()
+      const layer = await layerFrom(el, brand, sheet, { x: (r.left - ov.left) / ov.width, y: (r.top - ov.top) / ov.height, w: r.width / ov.width, h: r.height / ov.height })
+      commit({ overlays: withLayers(brand, page, [...layersOf(brand, page), layer]), tweaks: withTweak(brand, page, path, { ...t, hide: true }) })
+      setSel({ page, layer: layer.id })
+    },
+  }
+}
+
+function GenInspector() {
+  const edit = useEdit()!
+  const g = useGenActions()!
+  // Read colours and text after the page edits are applied.
+  const [seen, setSeen] = useState<{ colors: string[]; text: string; isText: boolean }>({ colors: [], text: '', isText: false })
+  useLayoutEffect(() => {
+    if (!g.el) return
+    const next = { colors: colorsIn(g.el), text: itemText(g.el), isText: isTextItem(g.el) }
+    if (JSON.stringify(next) !== JSON.stringify(seen)) setSeen(next)
+  })
+  if (!g.el) return null
+  const swaps = g.t.colors ?? {}
+  const original = (c: string) => Object.keys(swaps).find((k) => swaps[k] === c) ?? c
+  const setColor = (shown: string, to: string | undefined) => {
+    const from = original(shown)
+    const next = { ...swaps }
+    if (!to || to === from) delete next[from]
+    else next[from] = to
+    g.patch({ colors: next })
+  }
+  const label = seen.isText ? 'Text' : g.el instanceof SVGElement ? 'Artwork' : g.el.tagName === 'IMG' ? 'Image' : 'Item'
+  return (
+    <aside className="inspector">
+      <h4>
+        {label} <span className="ins-sub">on this page</span>
+      </h4>
+      {seen.isText && (
+        <Row label="Text">
+          <textarea rows={3} value={g.t.text ?? seen.text} onChange={(e) => g.patch({ text: e.target.value })} />
+        </Row>
+      )}
+      <div className="ins-grid">
+        <Row label="Size %">
+          <Num value={(g.t.s ?? 1) * 100} step={5} min={5} onChange={(v) => g.patch({ s: v / 100 })} />
+        </Row>
+        <Row label="Move X mm">
+          <Num value={g.t.dx ?? 0} step={1} onChange={(v) => g.patch({ dx: v })} />
+        </Row>
+        <Row label="Move Y mm">
+          <Num value={g.t.dy ?? 0} step={1} onChange={(v) => g.patch({ dy: v })} />
+        </Row>
+      </div>
+      {!!seen.colors.length && (
+        <div className="ins-swaps">
+          <span className="ins-label">Colours</span>
+          {seen.colors.slice(0, 8).map((c) => (
+            <div key={c} className="ins-swap">
+              <span className="ins-swatch" style={{ background: c }} title={original(c) !== c ? `${original(c)} → ${c}` : c} />
+              <Colors value={c} onChange={(to) => setColor(c, to)} />
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="ins-actions">
+        <button onClick={g.parent} title="Select the group this item sits in (Shift + Enter)">Select parent</button>
+        <button onClick={g.detach} title="Turn it into a free layer, with font, size and alignment controls">Make a layer</button>
+        <button onClick={g.reset} disabled={!Object.keys(g.t).length}>Reset</button>
+        <button className="danger" onClick={() => g.patch({ hide: true })}>
+          Hide
+        </button>
+      </div>
+      <p className="ins-hint">Drag to move, drag a corner to scale, double-click text to retype it. Drag it onto another page to move it there.</p>
+          </aside>
+  )
+}
+
 export function Inspector() {
   const edit = useEdit()
   const act = useLayerActions()
   if (!edit?.editing) return null
+  if (edit.sel?.el) return <GenInspector />
   if (!act) {
     return (
       <aside className="inspector">
         <h4>Editing</h4>
+        <p className="ins-hint">
+          Click anything on a page to select it: drag to move, drag a corner to scale, double-click text to retype it, and change its colours here. Drag it onto another page to move it there.
+        </p>
         <p className="ins-hint">
           Use the bar above any page to add text, images, shapes or your logo, or to add your own slide after it. Drag a PNG from Finder onto a page to place it.
         </p>
@@ -90,7 +196,7 @@ export function Inspector() {
   const pct = (v: number) => v * 100
   return (
     <aside className="inspector">
-      <h4>{{ image: 'Image', text: 'Text', rect: 'Shape', logo: 'Logo' }[l.kind]}</h4>
+      <h4>{{ image: 'Image', text: 'Text', rect: 'Shape', logo: 'Logo', svg: 'Artwork' }[l.kind]}</h4>
       <div className="ins-grid">
         <Row label="X %">
           <Num value={pct(l.x)} step={0.5} onChange={(v) => patch({ x: v / 100 })} />
@@ -232,6 +338,7 @@ export function Inspector() {
 export function EditKeys({ undo }: { undo: () => void }) {
   const edit = useEdit()
   const act = useLayerActions()
+  const gen = useGenActions()
   useEffect(() => {
     if (!edit?.editing) return
     const onKey = (e: KeyboardEvent) => {
@@ -244,6 +351,18 @@ export function EditKeys({ undo }: { undo: () => void }) {
         return
       }
       if (e.key === 'Escape') return edit.setSel(null)
+      if (gen) {
+        const step = e.shiftKey ? 5 : 0.5
+        if (e.key === 'Delete' || e.key === 'Backspace') gen.patch({ hide: true })
+        else if (e.key === 'Enter' && e.shiftKey) gen.parent()
+        else if (e.key === 'ArrowLeft') gen.patch({ dx: (gen.t.dx ?? 0) - step })
+        else if (e.key === 'ArrowRight') gen.patch({ dx: (gen.t.dx ?? 0) + step })
+        else if (e.key === 'ArrowUp') gen.patch({ dy: (gen.t.dy ?? 0) - step })
+        else if (e.key === 'ArrowDown') gen.patch({ dy: (gen.t.dy ?? 0) + step })
+        else return
+        e.preventDefault()
+        return
+      }
       if (!act) return
       const step = e.shiftKey ? 0.02 : 0.002
       const l = act.layer
@@ -260,7 +379,7 @@ export function EditKeys({ undo }: { undo: () => void }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [edit, act, undo])
+  }, [edit, act, gen, undo])
 
   // Paste an image (a screenshot, or a PNG copied from Figma or Photoshop) onto the selected page.
   useEffect(() => {

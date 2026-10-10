@@ -5,6 +5,9 @@ import { inkOn } from '../lib/color'
 import { BgScope } from '../pages/common'
 import { Overlay, imageLayer, pickImages } from './Layers'
 import { layersOf, slidesOf, uid, useEdit, withLayers } from './context'
+import { tweaksOf } from './tweaks'
+import { download } from '../lib/export'
+import { pagePng, scenes, vectorPdf } from '../lib/editable'
 
 export interface SheetItem {
   key: string
@@ -124,7 +127,7 @@ export function Arrange({ doc, items, defaultBg = '#FFFFFF' }: { doc: DocId; ite
           <div key={r.key} data-key={r.key} className={`sheet sheet-${doc} ${isHidden ? 'is-hidden' : ''} ${editing ? 'is-editing' : ''}`}>
             {editing && <SheetBar doc={doc} row={r} prev={rows[i - 1]?.key ?? '^'} hidden={isHidden} />}
             {/* Layers come first so a page break after the page can't push them onto the next sheet. */}
-            <Overlay page={r.key} bg={r.bg} />
+            <Overlay page={r.key} bg={r.bg} pageW={doc === 'guidelines' && brand.pageFormat === 'a4' ? 297 : 320} />
             {r.node}
           </div>
         )
@@ -193,6 +196,29 @@ function SheetBar({ doc, row, prev, hidden }: { doc: DocId; row: { key: string; 
   }
 
   const isSel = sel?.page === page
+  const pageTweaks = tweaksOf(brand, page)
+  const hiddenItems = Object.entries(pageTweaks).filter(([, t]) => t.hide)
+  const [busy, setBusy] = useState(false)
+
+  /** This artboard on its own: a PNG for slides, or an .ai file. */
+  async function exportOne(kind: 'png' | 'ai') {
+    const sheet = document.querySelector<HTMLElement>(`.sheet[data-key="${CSS.escape(page)}"]`)
+    if (!sheet || busy) return
+    setSel(null)
+    setBusy(true)
+    try {
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      const n = Array.from(document.querySelectorAll(`.sheet-${doc}[data-key]`)).indexOf(sheet) + 1
+      const name = `${brand.name} ${String(n).padStart(2, '0')}`
+      if (kind === 'png') download(await pagePng(sheet, brand, 300), `${name}.png`)
+      else download((await vectorPdf(await scenes([sheet], brand, () => {}), brand, name, () => {})).blob, `${name}.ai`)
+    } catch (e) {
+      alert(`Export failed: ${(e as Error).message}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className={`sheet-bar ${isSel ? 'is-active' : ''}`} data-prev={prev}>
       <button onClick={() => add({ id: uid(), kind: 'text', x: 0.3, y: 0.44, w: 0.4, h: 0.08, text: 'Double-click to edit', font: 'heading', size: 24, align: 'center' })}>Text</button>
@@ -243,6 +269,28 @@ function SheetBar({ doc, row, prev, hidden }: { doc: DocId; row: { key: string; 
           {hidden ? 'Show slide' : 'Hide slide'}
         </button>
       )}
+      {hiddenItems.length > 0 && (
+        <button
+          title="Bring back items you hid on this page"
+          onClick={() => {
+            const next = Object.fromEntries(Object.entries(pageTweaks).map(([k, t]) => [k, { ...t, hide: undefined }]))
+            const all = { ...(brand.tweaks ?? {}) }
+            const cleaned = Object.fromEntries(Object.entries(next).filter(([, t]) => Object.values(t).some((v) => v !== undefined)))
+            if (Object.keys(cleaned).length) all[page] = cleaned
+            else delete all[page]
+            commit({ tweaks: all })
+          }}
+        >
+          Show hidden items ({hiddenItems.length})
+        </button>
+      )}
+      <span className="sheet-bar-sep" />
+      <button disabled={busy} onClick={() => exportOne('png')} title="Download this page as a 300 dpi PNG">
+        PNG
+      </button>
+      <button disabled={busy} onClick={() => exportOne('ai')} title="Download this page as an editable Illustrator file">
+        .ai
+      </button>
     </div>
   )
 }
