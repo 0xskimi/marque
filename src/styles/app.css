@@ -178,6 +178,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Export menu */
 .export-menu { position: relative; }
 .export-pop { position: absolute; right: 0; top: 100%; margin-top: 6px; width: 300px; background: #fff; border: 1px solid var(--ui-line); border-radius: 10px; box-shadow: 0 10px 30px #00000024; padding: 5px; z-index: 50; display: flex; flex-direction: column; }
+.export-pop.is-left { right: auto; left: 0; }
 .export-pop button { display: flex; flex-direction: column; gap: 2px; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 7px; cursor: pointer; font: inherit; }
 .export-pop button:hover { background: #f1f1ef; }
 .export-pop b { font-size: 13px; font-weight: 600; color: var(--ui-ink); }

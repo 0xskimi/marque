@@ -27,6 +27,9 @@ const VIEWS: { id: View; label: string; title: string }[] = [
   { id: 'explore', label: 'Exploration', title: 'Exploration' },
 ]
 
+/** Width of the Export menu, matches .export-pop in app.css. */
+const EXPORT_MENU_W = 300
+
 function pageSize(view: View, b: Brand) {
   if (view === 'guidelines' && b.pageFormat === 'a4') return '297mm 210mm'
   return '320mm 180mm'
@@ -99,6 +102,8 @@ export default function App() {
 
   type Kind = 'pdf' | 'ai' | 'svg' | 'png'
   const [exportMenu, setExportMenu] = useState(false)
+  // The menu opens leftwards from the button, unless that would run under the sidebar.
+  const [exportLeft, setExportLeft] = useState(false)
 
   /** Vector exports for Illustrator, and PNGs of every page. */
   async function exportFor(kind: Kind) {
@@ -265,11 +270,20 @@ export default function App() {
           </button>
           {pages && (
             <div className="export-menu">
-              <button className="btn" disabled={!!busy} onClick={() => setExportMenu((m) => !m)}>
+              <button
+                className="btn"
+                disabled={!!busy}
+                onClick={(e) => {
+                  const b = e.currentTarget.getBoundingClientRect()
+                  const main = e.currentTarget.closest('.main')!.getBoundingClientRect()
+                  setExportLeft(b.right - EXPORT_MENU_W < main.left + 8)
+                  setExportMenu((m) => !m)
+                }}
+              >
                 Export ▾
               </button>
               {exportMenu && (
-                <div className="export-pop" onMouseLeave={() => setExportMenu(false)}>
+                <div className={`export-pop ${exportLeft ? 'is-left' : ''}`} onMouseLeave={() => setExportMenu(false)}>
                   <button
                     onClick={() => {
                       setExportMenu(false)
