@@ -301,7 +301,7 @@ export default function App() {
                   </button>
                   <button onClick={() => exportFor('ai')}>
                     <b>Illustrator files (.zip)</b>
-                    <span>One .ai per page, with live text and vector shapes. Open each with File › Open.</span>
+                    <span>One editable .ai per page, plus a script that puts them all on artboards in one document.</span>
                   </button>
                   <button onClick={() => exportFor('svg')}>
                     <b>SVG pages (.zip)</b>
