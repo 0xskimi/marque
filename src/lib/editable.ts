@@ -5,12 +5,14 @@ import type { Brand } from '../types'
 import { flatten, fontKey, sceneFonts, type FontKey, type Rgba, type Scene, type SNode } from './flatten'
 import { fontFile, postScriptName, toBase64 } from './fontfiles'
 import { canvasBlob, draw, pagePng, preparePage } from './raster'
+import collectPages from './collect-pages.jsx?raw'
 
 /**
  * Exports for editing in Illustrator. Pages are flattened into boxes, text lines,
  * images and SVG artwork (see flatten.ts) and written as:
  *  - a vector PDF with live text in embedded fonts and RGB colour values,
- *  - the same file as .ai (Illustrator opens PDF-based .ai files for editing),
+ *  - .ai files, one per page (Illustrator opens a single-page PDF-based .ai as editable
+ *    artwork, but imports the pages of a multi-page one as linked pictures),
  *  - one SVG per page, whose text Illustrator maps to your installed fonts.
  */
 
@@ -339,6 +341,23 @@ export async function svgZip(pages: Scene[], name: string, progress: Progress): 
     zip.file(`${name} ${String(i + 1).padStart(2, '0')}.svg`, sceneToSvg(p))
   })
   return zip.generateAsync({ type: 'blob' })
+}
+
+/**
+ * One .ai per page, so each opens in Illustrator as editable artwork, plus a script
+ * that puts them all on artboards in one document.
+ */
+export async function aiZip(pages: Scene[], brand: Brand, name: string, progress: Progress): Promise<ExportResult> {
+  const zip = new JSZip()
+  const missing = new Set<string>()
+  for (const [i, p] of pages.entries()) {
+    const n = `${name} ${String(i + 1).padStart(2, '0')}`
+    const r = await vectorPdf([p], brand, n, () => progress(`Writing page ${i + 1} of ${pages.length}`))
+    zip.file(`${n}.ai`, r.blob)
+    r.missingFonts.forEach((f) => missing.add(f))
+  }
+  zip.file('Open all pages in one document.jsx', collectPages)
+  return { blob: await zip.generateAsync({ type: 'blob' }), missingFonts: [...missing] }
 }
 
 export async function pngZip(pages: HTMLElement[], brand: Brand, name: string, progress: Progress, dpi = 300): Promise<Blob> {

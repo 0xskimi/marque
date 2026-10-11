@@ -14,7 +14,7 @@ import { getLibrary, saveLibrary } from './lib/library'
 import { EditContext, overlayImageIds, type EditApi, type EditPatch, type Selection } from './edit/context'
 import { EditKeys, Inspector } from './edit/Inspector'
 import { usePanZoom, ZOOM_MAX, ZOOM_MIN } from './lib/panzoom'
-import { canvasPages, pngZip, scenes, svgZip, vectorPdf } from './lib/editable'
+import { aiZip, canvasPages, pngZip, scenes, svgZip, vectorPdf } from './lib/editable'
 import { Explore } from './explore/Explore'
 
 type View = 'guidelines' | 'assets' | 'deck' | 'print' | 'explore'
@@ -125,8 +125,10 @@ export default function App() {
         download(await svgZip(s, name, setBusy), `${name} SVG.zip`)
         return
       }
-      const { blob, missingFonts } = await vectorPdf(s, brand, name, setBusy)
-      download(blob, kind === 'ai' ? `${name}.ai` : `${name} (editable).pdf`)
+      // Several pages go out as one .ai per page (see aiZip).
+      const many = kind === 'ai' && s.length > 1
+      const { blob, missingFonts } = many ? await aiZip(s, brand, name, setBusy) : await vectorPdf(s, brand, name, setBusy)
+      download(blob, many ? `${name} AI.zip` : kind === 'ai' ? `${name}.ai` : `${name} (editable).pdf`)
       if (missingFonts.length)
         alert(
           `${missingFonts.join(', ')} couldn't be embedded, so that text uses Helvetica or Times in this file.\n\nUpload the font as a .ttf in Typography, or use the SVG export, where Illustrator picks up the fonts installed on your Mac.`,
@@ -298,8 +300,8 @@ export default function App() {
                     <span>Live text, vector shapes and exact colours, for Illustrator.</span>
                   </button>
                   <button onClick={() => exportFor('ai')}>
-                    <b>Illustrator file (.ai)</b>
-                    <span>The editable PDF as an .ai file. Every page is an artboard.</span>
+                    <b>Illustrator files (.zip)</b>
+                    <span>One editable .ai per page, plus a script that puts them all on artboards in one document.</span>
                   </button>
                   <button onClick={() => exportFor('svg')}>
                     <b>SVG pages (.zip)</b>
