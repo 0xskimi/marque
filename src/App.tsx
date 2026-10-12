@@ -16,6 +16,7 @@ import { EditKeys, Inspector } from './edit/Inspector'
 import { usePanZoom, ZOOM_MAX, ZOOM_MIN } from './lib/panzoom'
 import { aiZip, canvasPages, pngZip, scenes, svgZip, vectorPdf } from './lib/editable'
 import { Explore } from './explore/Explore'
+import { seedDefault } from './lib/seed'
 
 type View = 'guidelines' | 'assets' | 'deck' | 'print' | 'explore'
 
@@ -43,6 +44,11 @@ export default function App() {
   const [marks, setMarks] = useState(true)
   const [editing, setEditing] = useState<PhotoMockup | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    seedDefault(projects, add)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [layoutMode, setLayoutMode] = useState(false)
   const [sel, setSel] = useState<Selection | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
