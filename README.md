@@ -56,6 +56,14 @@ The CMYK and Pantone files are written by Marque itself, not by the browser, so 
 
 Outline live text and expand gradients, clipping masks and `<use>` symbols before uploading. Artwork with any of these still exports, but its print file is an RGB PDF, and the read-me says why. Artwork with transparency gets print PDFs but no EPS, because EPS can't hold transparency.
 
+## Deploying to Vercel
+
+Marque deploys to Vercel as a Vite site, from `main` (it runs at marque.tentacore.xyz). `vercel.json` sends the two server routes to functions in `api/`: `/__gfonts/css` for the font files the editable exports embed, and `/__claude/*` for Exploration.
+
+Brands are saved in each browser's local storage, so the deployed site and your local copy keep separate projects. Use the project file export and import to move one across.
+
+For Exploration on the deployed site, add `ANTHROPIC_API_KEY` in the Vercel project's environment variables and redeploy. Anyone who can open the site can then run Exploration on your key, so protect the deployment first or leave the key unset.
+
 ## Editing pages like an artboard
 
 Click **Edit layout** above any document (Guidelines, Brand Assets or Presentation).
@@ -93,7 +101,7 @@ Layers and custom slides are saved with the project (and in *Save file*), and th
 - **Illustrator files** is a zip with one .ai per page (a single-page PDF with an .ai extension). Open each with File › Open and it comes in as editable artwork. Marque doesn't write one multi-page .ai, because Illustrator brings the pages of a multi-page file in as linked pictures (boxes with an X) rather than editable artwork. The **.ai** button in a page's bar downloads just that page.
 - To get every page as an artboard in one document, unzip the folder, then in Illustrator choose File › Scripts › Other Script… and pick **Open all pages in one document.jsx** from it. The script opens each page, pastes it onto its own artboard and layer in a new document, and leaves it for you to save as an .ai.
 
-Fonts are fetched as TrueType files from Google Fonts through the dev server (`/__gfonts` in `vite.config.ts`), so run Marque with `npm run dev` and be online when exporting. Uploaded fonts are embedded when they are `.ttf` files. If a font can't be embedded, Marque tells you which one and that text falls back to Helvetica or Times in the PDF; the SVG export still names the font, and Illustrator uses your installed copy.
+Fonts are fetched as TrueType files from Google Fonts through the server (`/__gfonts`: the proxy in `vite.config.ts` locally, `api/gfonts.ts` on Vercel), so be online when exporting. Uploaded fonts are embedded when they are `.ttf` files. If a font can't be embedded, Marque tells you which one and that text falls back to Helvetica or Times in the PDF; the SVG export still names the font, and Illustrator uses your installed copy.
 
 **SVG pages** keep the same live text, colours and vectors, and leave the fonts to Illustrator.
 
@@ -107,7 +115,7 @@ The Exploration tab asks Claude for new directions built from everything in the 
 
 Add an optional direction ("warmer, more premium", "a monogram from the initials") and choose how many. Results are kept with the project, newest first. **Stop** cancels a run, and Claude stops with it.
 
-Claude follows the skills in `skills/`: a brand application skill (`skills/brand-application/SKILL.md`) and the brandkit skill (`skills/brandkit/SKILL.md`), which adds a positioning sentence, contrast checks, a two-family and six-colour limit, and the 24 px favicon test. Every `skills/<name>/SKILL.md` is added to Claude's instructions, so you can edit that file or drop in your own skills without touching the code. Requests go through the dev server (`server/explore.ts`) using Claude Opus 5.5, so the Exploration tab needs `npm run dev` and an internet connection. Each run is billed to your API key; logo runs think the longest.
+Claude follows the skills in `skills/`: a brand application skill (`skills/brand-application/SKILL.md`) and the brandkit skill (`skills/brandkit/SKILL.md`), which adds a positioning sentence, contrast checks, a two-family and six-colour limit, and the 24 px favicon test. Every `skills/<name>/SKILL.md` is added to Claude's instructions, so you can edit that file or drop in your own skills without touching the code. Requests go through the server (`server/explore.ts`, run by `npm run dev` locally and by `api/` functions on Vercel) using Claude Opus 5.5, so the Exploration tab needs an internet connection. Each run is billed to your API key; logo runs think the longest.
 
 ## Photo mockups
 

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/__gfonts/css", "destination": "/api/gfonts" },
+    { "source": "/__claude/status", "destination": "/api/status" },
+    { "source": "/__claude/explore", "destination": "/api/explore" }
+  ],
+  "functions": {
+    "api/explore.ts": { "maxDuration": 300, "includeFiles": "skills/**" },
+    "api/status.ts": { "includeFiles": "skills/**" }
+  }
+}
