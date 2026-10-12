@@ -6,8 +6,8 @@ import Anthropic from '@anthropic-ai/sdk'
 
 /**
  * Exploration: asks Claude for ideas, brand concepts and logo explorations built
- * from the brand kit. It runs inside the local dev server, so the API key stays in
- * .env.local on your machine and never reaches the browser.
+ * from the brand kit. It runs on the server (the local dev server, or Vercel functions
+ * in api/), so the API key never reaches the browser.
  *
  *   POST /__claude/explore  { mode, count, prompt, brand, seed? }  → NDJSON progress, then the result
  *   GET  /__claude/status                                           → whether a key is set
@@ -122,7 +122,7 @@ function readJson(req: IncomingMessage): Promise<Body> {
 }
 
 function friendly(e: unknown): string {
-  if (e instanceof Anthropic.AuthenticationError) return 'Your Anthropic API key was not accepted. Check ANTHROPIC_API_KEY in .env.local, then restart npm run dev.'
+  if (e instanceof Anthropic.AuthenticationError) return 'Your Anthropic API key was not accepted. Check ANTHROPIC_API_KEY (in .env.local, or in the Vercel project), then restart npm run dev or redeploy.'
   if (e instanceof Anthropic.PermissionDeniedError) return 'This API key does not have access to the model Marque uses.'
   if (e instanceof Anthropic.RateLimitError) return 'Claude is rate limited right now. Try again in a minute.'
   if (e instanceof Anthropic.APIConnectionError) return 'Could not reach Claude. Check your internet connection.'
@@ -132,7 +132,8 @@ function friendly(e: unknown): string {
   return msg
 }
 
-const SETUP = 'Add your Anthropic API key to a file called .env.local in the Marque folder (ANTHROPIC_API_KEY=sk-ant-...), then restart npm run dev.'
+const SETUP =
+  'Add your Anthropic API key as ANTHROPIC_API_KEY: in a file called .env.local in the Marque folder (then restart npm run dev), or in the Vercel project\'s environment variables (then redeploy).'
 
 async function explore(apiKey: string | undefined, body: Body, send: (line: object) => void, signal: AbortSignal) {
   const mode = body.mode
@@ -182,14 +183,27 @@ async function explore(apiKey: string | undefined, body: Body, send: (line: obje
   send({ type: 'done', items: data.items, model: msg.model })
 }
 
-export function explorePlugin(apiKey: string | undefined): Plugin {
-  const handle = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    if (req.url === '/__claude/status' && req.method === 'GET') {
-      res.setHeader('Content-Type', 'application/json')
-      res.end(JSON.stringify({ ready: !!(apiKey || process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN), skills: skills() ? fs.readdirSync(SKILLS_DIR) : [] }))
+type Handler = (req: IncomingMessage, res: ServerResponse) => Promise<void> | void
+
+const hasKey = (apiKey: string | undefined) => !!(apiKey || process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN)
+
+/** GET /__claude/status: whether a key is set, and which skills are loaded. */
+export function statusHandler(apiKey: string | undefined): Handler {
+  return (_req, res) => {
+    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Cache-Control', 'no-store')
+    res.end(JSON.stringify({ ready: hasKey(apiKey), skills: skills() ? fs.readdirSync(SKILLS_DIR) : [] }))
+  }
+}
+
+/** POST /__claude/explore: streams progress as NDJSON, then the result. */
+export function exploreHandler(apiKey: string | undefined): Handler {
+  return async (req, res) => {
+    if (req.method !== 'POST') {
+      res.statusCode = 405
+      res.end()
       return
     }
-    if (req.url !== '/__claude/explore' || req.method !== 'POST') return next()
     res.setHeader('Content-Type', 'application/x-ndjson')
     res.setHeader('Cache-Control', 'no-store')
     const send = (line: object) => res.write(JSON.stringify(line) + '\n')
@@ -202,6 +216,17 @@ export function explorePlugin(apiKey: string | undefined): Plugin {
       if (!stop.signal.aborted) send({ type: 'error', message: friendly(e) })
     }
     res.end()
+  }
+}
+
+/** The same endpoints on the local dev and preview servers. On Vercel they are functions in api/. */
+export function explorePlugin(apiKey: string | undefined): Plugin {
+  const status = statusHandler(apiKey)
+  const run = exploreHandler(apiKey)
+  const handle = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    if (req.url === '/__claude/status' && req.method === 'GET') return void status(req, res)
+    if (req.url === '/__claude/explore' && req.method === 'POST') return void run(req, res)
+    next()
   }
   return {
     name: 'marque-explore',

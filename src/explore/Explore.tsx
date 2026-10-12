@@ -86,7 +86,7 @@ export function Explore({ brand, update }: { brand: Brand; update: (p: Partial<B
         body: JSON.stringify({ mode: m, count, prompt: direction, brand: brandText(latest.current), seed }),
         signal: abort.signal,
       })
-      if (!res.ok || !res.body) throw new Error(res.status === 404 ? 'Exploration needs the Marque dev server. Start it with npm run dev.' : `Request failed (${res.status}).`)
+      if (!res.ok || !res.body) throw new Error(res.status === 404 ? 'Exploration needs the Marque server: npm run dev, or the Vercel deployment.' : `Request failed (${res.status}).`)
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
       let buf = ''
       for (;;) {
@@ -169,7 +169,7 @@ export function Explore({ brand, update }: { brand: Brand; update: (p: Partial<B
         </div>
         {status && !status.ready && (
           <div className="ex-note">
-            Add your Anthropic API key to a file called <code>.env.local</code> in the Marque folder (<code>ANTHROPIC_API_KEY=sk-ant-…</code>), then restart <code>npm run dev</code>.
+            Add your Anthropic API key as <code>ANTHROPIC_API_KEY</code>: in a file called <code>.env.local</code> in the Marque folder (then restart <code>npm run dev</code>), or in the Vercel project's environment variables (then redeploy).
           </div>
         )}
         {error && <div className="ex-note is-error">{error}</div>}
