@@ -46,7 +46,7 @@ export default function App() {
   const importRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    seedDefault(projects, add)
+    seedDefault(add)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const [layoutMode, setLayoutMode] = useState(false)

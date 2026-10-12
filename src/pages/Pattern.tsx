@@ -31,13 +31,15 @@ export function Pattern({
   const aspect = w / h
 
   if (style === 'crop') {
+    // Sized to the panel's height so the whole bird reads, head and both wings in view;
+    // only the wing tips and tail bleed off the edges.
     const art = svgUrl(recolor(mark.svg, color))
-    const H = 150
-    const W = H * aspect
-    const x = anchor === 'right' ? 100 - W * 0.62 : anchor === 'left' ? -W * 0.38 : 50 - W / 2
+    const x = anchor === 'right' ? '22%' : anchor === 'left' ? '-30%' : '-4%'
     return (
-      <svg className="pattern" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <image href={art} x={x} y={100 - H * 0.72} width={W} height={H} opacity={Math.min(1, opacity * 1.1)} preserveAspectRatio="xMidYMid meet" />
+      <svg className="pattern" width="100%" height="100%" aria-hidden>
+        <svg x={x} y="4%" width="400%" height="118%" viewBox={`0 0 ${aspect} 1`} preserveAspectRatio="xMinYMin meet" overflow="visible">
+          <image href={art} width={aspect} height={1} opacity={Math.min(1, opacity * 1.1)} />
+        </svg>
       </svg>
     )
   }

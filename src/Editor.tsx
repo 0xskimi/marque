@@ -441,7 +441,6 @@ export function Editor({ brand, update, onEditMockup }: Props) {
             <option value="crop">Oversized mark</option>
             <option value="grid">Repeat</option>
             <option value="offset">Offset repeat</option>
-            <option value="outline">Outline repeat</option>
             <option value="none">No pattern</option>
           </select>
         </Field>

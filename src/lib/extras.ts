@@ -129,7 +129,7 @@ export async function socialTemplates(b: Brand, d: Derived): Promise<{ name: str
 export async function patternFiles(b: Brand, d: Derived): Promise<{ name: string; data: Blob | string }[]> {
   if (!d.mark) return []
   const out: { name: string; data: Blob | string }[] = []
-  for (const style of ['grid', 'offset', 'outline'] as const) {
+  for (const style of ['grid', 'offset'] as const) {
     out.push({ name: `tile-${style}-${b.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.svg`, data: patternTile(d.mark, style, d.primary) })
   }
   for (const [label, bg] of [

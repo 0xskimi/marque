@@ -191,7 +191,7 @@ export function useProjects() {
       setState((s) => ({ ...s, activeId: id }))
     },
     add(b: Brand) {
-      setState((s) => ({ projects: [...s.projects, b], activeId: b.id }))
+      setState((s) => ({ projects: [...s.projects.filter((p) => p.id !== b.id), b], activeId: b.id }))
     },
     remove(id: string) {
       setState((s) => {

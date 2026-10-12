@@ -1190,9 +1190,8 @@ function Hierarchy({ ctx }: { ctx: Ctx }) {
 function Patterns({ ctx }: { ctx: Ctx }) {
   const { b, d } = ctx
   const panels = [
-    { style: 'crop' as const, bg: d.primary, label: 'Oversized mark' },
+    { style: 'crop' as const, bg: d.dark, label: 'Oversized mark', ink: d.primary },
     { style: 'grid' as const, bg: d.dark, label: 'Repeat' },
-    { style: 'outline' as const, bg: d.light, label: 'Outline repeat' },
     { style: 'offset' as const, bg: '#FFFFFF', label: 'Offset repeat', ink: d.primary },
   ]
   return (
@@ -1205,7 +1204,7 @@ function Patterns({ ctx }: { ctx: Ctx }) {
         {panels.map((p) => (
           <figure key={p.style}>
             <Surface bg={p.bg} className="pat-tile">
-              <Pattern mark={d.mark} bg={p.bg} style={p.style} opacity={p.style === 'crop' ? 0.18 : 0.12} ink={p.ink} density={0.9} anchor="center" />
+              <Pattern mark={d.mark} bg={p.bg} style={p.style} opacity={p.style === 'crop' ? 1 : 0.12} ink={p.ink} density={0.9} anchor="center" />
             </Surface>
             <figcaption>
               {p.label}
@@ -1288,29 +1287,142 @@ export function SocialFrame({ ctx, kind }: { ctx: Ctx; kind: 'post' | 'story' })
   )
 }
 
+function firstSentence(text: string) {
+  const t = paras(text)[0] ?? ''
+  const m = t.match(/^.*?[.!?](\s|$)/)
+  return (m ? m[0] : t).trim()
+}
+
+function PostPhoto({ id }: { id?: string }) {
+  const url = useImage(id)
+  return <div className="sp-photo" style={{ backgroundImage: url ? `url(${url})` : undefined }} />
+}
+
+/** A feed of real-looking posts, a story and the profile, all built from the brand's own content. */
 function Social({ ctx }: { ctx: Ctx }) {
-  const { d } = ctx
+  const { b, d } = ctx
+  const head = { fontFamily: fontStack(d.heading) }
+  const handle = `@${b.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`
+  const points = lines(b.ethos).flatMap((l) => {
+    const k = l.indexOf(':')
+    return k > 0 ? [{ title: l.slice(0, k).trim(), text: l.slice(k + 1).trim() }] : []
+  })
+  const point = points[0]
+  // A photo post carries a few words at most; long copy fights the picture.
+  const vision = firstSentence(b.vision)
+  const photoLine = points[1]?.title ?? (vision.length <= 60 ? vision : b.tagline || b.name)
+  const service = b.subBrands?.[0]
+  const photo = b.imagery[0]?.id
   return (
-    <div className="split social-split">
+    <div className="stack social-page">
       <H kicker="Applications" title="Social media">
-        Logo placement and safe zones for the main formats. On stories keep the top and bottom bands clear of text; the app’s interface covers them.
+        Every post leads with one clear message, set in the heading typeface and anchored by the logo. Rotate statement, value, service and photo posts so the feed
+        stays varied but recognisable.
       </H>
-      <div className="social">
-        <figure>
-          <SocialFrame ctx={ctx} kind="post" />
-          <figcaption>Post · 1080 × 1080 px</figcaption>
-        </figure>
-        <figure>
-          <SocialFrame ctx={ctx} kind="story" />
-          <figcaption>Story · 1080 × 1920 px</figcaption>
-        </figure>
-        <figure className="social-avatar-fig">
-          <Surface bg={d.primary} className="social-avatar">
-            <div className="social-avatar-logo">
-              <LogoImg logo={d.mark} />
+      <div className="sp">
+        <div className="sp-feed">
+          <figure>
+            <Surface bg={d.dark} className="sp-post">
+              <Pattern mark={d.mark} bg={d.dark} style="crop" opacity={1} ink={d.primary} anchor="right" />
+              <div className="sp-mark">
+                <LogoImg logo={d.mark} />
+              </div>
+              <div className="sp-h big" style={head}>
+                {b.tagline || b.name}
+              </div>
+            </Surface>
+            <figcaption>Statement</figcaption>
+          </figure>
+          <figure>
+            <Surface bg="#FFFFFF" className="sp-post sp-light">
+              <div className="sp-logo">
+                <LogoImg logo={d.mainLogo} style={{ objectPosition: 'left center' }} />
+              </div>
+              <div>
+                <div className="sp-kicker" style={{ color: d.primary }}>
+                  {point ? 'Our ethos' : 'Our mission'}
+                </div>
+                <div className="sp-h" style={head}>
+                  {point?.title ?? firstSentence(b.mission)}
+                </div>
+                {point && <p className="sp-p">{point.text}</p>}
+              </div>
+            </Surface>
+            <figcaption>Value</figcaption>
+          </figure>
+          <figure>
+            <Surface bg={d.primary} className="sp-post">
+              <Pattern mark={d.mark} bg={d.primary} style="grid" opacity={0.05} />
+              <div className="sp-kicker">{service?.name ?? 'What we do'}</div>
+              <div className="sp-h" style={head}>
+                {service?.description ?? firstSentence(b.about)}
+              </div>
+              <div className="sp-foot">
+                <span>{siteOf(b)}</span>
+                <span className="sp-dots">
+                  <i className="on" />
+                  <i />
+                  <i />
+                </span>
+              </div>
+            </Surface>
+            <figcaption>Service carousel</figcaption>
+          </figure>
+          <figure>
+            <Surface bg={d.dark} className="sp-post sp-photo-post">
+              <PostPhoto id={photo} />
+              <div className="sp-scrim" />
+              <div className="sp-h" style={head}>
+                {photoLine}
+              </div>
+              <div className="sp-logo small">
+                <LogoImg logo={d.mainLogo} version="white" style={{ objectPosition: 'left center' }} />
+              </div>
+            </Surface>
+            <figcaption>Photo</figcaption>
+          </figure>
+        </div>
+        <figure className="sp-story-fig">
+          <Surface bg={d.dark} className="sp-story">
+            <Pattern mark={d.mark} bg={d.dark} style="crop" opacity={0.22} ink={d.primary} anchor="center" />
+            <div className="sp-story-bar">
+              <i className="on" />
+              <i />
+            </div>
+            <div className="sp-story-top">
+              <span className="sp-avatar" style={{ background: d.primary }}>
+                <LogoImg logo={d.mark} version="white" />
+              </span>
+              <b>{handle.slice(1)}</b>
+            </div>
+            <div className="sp-story-body">
+              <div className="sp-h" style={head}>
+                {b.tagline || b.name}
+              </div>
+              <p className="sp-p">{firstSentence(b.mission)}</p>
+              <span className="sp-cta" style={{ background: '#FFFFFF', color: d.dark }}>
+                {siteOf(b).replace(/^www\./, '')}
+              </span>
             </div>
           </Surface>
-          <figcaption>Profile picture · 400 × 400 px</figcaption>
+          <figcaption>Story · 1080 × 1920</figcaption>
+        </figure>
+        <figure className="sp-profile-fig">
+          <div className="sp-profile">
+            <Surface bg={d.primary} className="sp-avatar big">
+              <LogoImg logo={d.mark} version="white" />
+            </Surface>
+            <b style={head}>{b.name}</b>
+            <span className="sp-handle">{handle}</span>
+            <p>{firstSentence(b.about)}</p>
+            <span className="sp-link" style={{ color: d.primary }}>
+              {siteOf(b)}
+            </span>
+            <span className="sp-follow" style={{ background: d.primary, color: inkOn(d.primary) }}>
+              Follow
+            </span>
+          </div>
+          <figcaption>Profile · avatar 400 × 400</figcaption>
         </figure>
       </div>
     </div>
