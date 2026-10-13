@@ -499,7 +499,6 @@ function Architecture({ ctx }: { ctx: Ctx }) {
 
 function Rationale({ ctx }: { ctx: Ctx }) {
   const { b, d } = ctx
-  const word = d.logo('wordmark')
   return (
     <div className="split">
       <div className="g-heading">
@@ -516,11 +515,6 @@ function Rationale({ ctx }: { ctx: Ctx }) {
           <div className="rationale-mark">
             <LogoImg logo={d.mark} />
           </div>
-          {word && word !== d.mark && (
-            <div className="rationale-word">
-              <LogoImg logo={word} />
-            </div>
-          )}
         </div>
       </div>
     </div>
