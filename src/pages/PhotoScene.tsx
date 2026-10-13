@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Logo, PhotoMockup, Placement } from '../types'
 import { quadAspect, quadTransform } from '../lib/homography'
 import { useImage } from '../lib/images'
@@ -78,6 +78,32 @@ function toneColor(ctx: Ctx, p: Placement, bg: string) {
 }
 
 /** A photo with brand artwork warped onto its surfaces. */
+/** Whether the photo's top-left corner, where the slide label sits, is light or dark. */
+function useCornerTone(url?: string) {
+  const [tone, setTone] = useState<'light' | 'dark'>('light')
+  useEffect(() => {
+    if (!url) return
+    const img = new Image()
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas')
+        c.width = 32
+        c.height = 18
+        const x = c.getContext('2d')!
+        x.drawImage(img, 0, 0, img.width * 0.3, img.height * 0.16, 0, 0, 32, 18)
+        const px = x.getImageData(0, 0, 32, 18).data
+        let sum = 0
+        for (let i = 0; i < px.length; i += 4) sum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2]
+        setTone(sum / (px.length / 4) > 140 ? 'light' : 'dark')
+      } catch {
+        /* keep the default */
+      }
+    }
+    img.src = url
+  }, [url])
+  return tone
+}
+
 export function PhotoScene({
   ctx,
   mockup,
@@ -94,13 +120,14 @@ export function PhotoScene({
   children?: ReactNode
 }) {
   const url = useImage(mockup.imageId)
+  const tone = useCornerTone(url)
   const k = fit === 'cover' ? Math.max(width / mockup.width, height / mockup.height) : Math.min(width / mockup.width, height / mockup.height)
   const dw = mockup.width * k
   const dh = mockup.height * k
   const ox = (width - dw) / 2
   const oy = (height - dh) / 2
   return (
-    <div className="ps" style={{ width, height }}>
+    <div className={`ps ps-on-${tone}`} style={{ width, height }}>
       {url && <img className="ps-photo" src={url} alt="" style={{ left: ox, top: oy, width: dw, height: dh }} />}
       {mockup.placements.map((p) => {
         const q = p.corners.map(([u, v]) => [ox + u * dw, oy + v * dh] as [number, number])

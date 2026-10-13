@@ -1,7 +1,7 @@
 import { Arrange } from '../edit/Arrange'
 import { useEdit } from '../edit/context'
 import type { CSSProperties, ReactNode } from 'react'
-import type { Brand, BrandColor, BrandFont, Logo } from '../types'
+import type { Brand, BrandColor, BrandFont, Logo, PhotoMockup } from '../types'
 import { LOGO_SLOTS } from '../types'
 import { derive, versionFor, worstBackground, type Derived } from '../lib/derive'
 import { contrast, estimateCmyk, hexToRgb, inkOn, luminance, mix, normHex, offBrand, ramp, toneVars, wcagLevel } from '../lib/color'
@@ -11,6 +11,8 @@ import { useImage } from '../lib/images'
 import { ClearspaceView, ConstructionView, LogoImg, Page, Surface } from './common'
 import { AppIcon, BusinessCards, Poster, SocialPost, WebsiteHero } from './Mockups'
 import { Pattern } from './Pattern'
+import { MM, PhotoScene } from './PhotoScene'
+import { useLibrary } from '../lib/library'
 
 export interface Ctx {
   b: Brand
@@ -95,8 +97,10 @@ export function makeCtx(brand: Brand): Ctx {
 export function Guidelines({ brand }: { brand: Brand }) {
   const ctx = makeCtx(brand)
   const edit = useEdit()
+  const lib = useLibrary()
+  const photos = (brand.photoMockups ?? []).map((id) => lib.find((m) => m.id === id)).filter((m) => m !== undefined)
   const hiddenNow = new Set(edit?.editing ? [] : (brand.hiddenSlides ?? []))
-  const defs = buildPages(ctx).filter((p) => !hiddenNow.has(`guidelines:${p.key}`))
+  const defs = buildPages(ctx, photos).filter((p) => !hiddenNow.has(`guidelines:${p.key}`))
   const starts: Record<string, number> = {}
   defs.forEach((p, i) => {
     if (!(p.section in starts)) starts[p.section] = i + 1
@@ -142,7 +146,7 @@ export function docVars({ d }: { d: Derived }) {
   } as CSSProperties
 }
 
-function buildPages(ctx: Ctx): PageDef[] {
+function buildPages(ctx: Ctx, photos: PhotoMockup[] = []): PageDef[] {
   const { b, d, t } = ctx
   const hidden = new Set(b.hiddenPages ?? [])
   const pages: PageDef[] = []
@@ -209,7 +213,18 @@ function buildPages(ctx: Ctx): PageDef[] {
 
   divider(5)
   add({ key: 'social', section: 'Applications', title: 'Social media', bg: C, render: () => <Social ctx={ctx} /> })
-  if (!hidden.has('applications')) {
+  if (!hidden.has('applications') && photos.length) {
+    // Real photo mockups make the strongest application pages: two per page, captioned.
+    const shown = photos.slice(0, 8)
+    for (let i = 0; i < shown.length; i += 2)
+      pages.push({
+        key: `apps-photo-${i / 2}`,
+        section: 'Applications',
+        title: 'Applications',
+        bg: C,
+        render: () => <PhotoApplications ctx={ctx} mockups={shown.slice(i, i + 2)} first={i === 0} />,
+      })
+  } else if (!hidden.has('applications')) {
     pages.push({ key: 'apps-1', section: 'Applications', title: 'Applications', bg: C, render: () => <Applications ctx={ctx} /> })
     pages.push({ key: 'apps-2', section: 'Applications', title: 'Applications', bg: C, render: () => <Applications2 ctx={ctx} /> })
   }
@@ -461,10 +476,16 @@ function Architecture({ ctx }: { ctx: Ctx }) {
                     <LogoImg logo={s.logo} version={s.color ? 'auto' : 'full'} />
                   </div>
                 ) : (
-                  <strong>{s.name}</strong>
+                  <div className="arch-endorsed">
+                    <span className="arch-endorsed-mark">
+                      <LogoImg logo={d.mark} />
+                    </span>
+                    <i />
+                    <strong style={{ fontFamily: fontStack(d.heading) }}>{s.name}</strong>
+                  </div>
                 )}
               </Surface>
-              <strong>{s.name}</strong>
+              {s.logo && <strong>{s.name}</strong>}
               <p>{s.description}</p>
             </div>
           ))}
@@ -606,11 +627,11 @@ function Sizing({ ctx }: { ctx: Ctx }) {
     { px: min * 2, logo: main, note: 'Medium: headers, documents' },
     { px: min, logo: main, note: `Minimum: ${b.minPrintMm} mm in print` },
   ]
-  if (mark) rows.push({ px: markMin, logo: mark, note: 'Logomark minimum: favicons, avatars' })
+  if (mark) rows.push({ px: markMin, logo: mark, note: 'Icon minimum: favicons, avatars' })
   return (
     <div className="split">
       <H kicker="Logo" title="Logo sizing">
-        Recommended widths in pixels, shown at actual screen size. Below the minimum the details fill in; switch to the logomark when space is tighter.
+        Recommended widths in pixels, shown at actual screen size. Below the minimum the details fill in; switch to the icon when space is tighter.
       </H>
       <div className="sizing">
         {rows.map((r, i) => (
@@ -665,7 +686,7 @@ function Badges({ ctx }: { ctx: Ctx }) {
   return (
     <div className="stack">
       <H kicker="Logo" title="Solid badges and icons">
-        When the logo has to sit on photography or a busy surface, place the logomark inside a solid badge. These are the only approved shapes.
+        When the logo has to sit on photography or a busy surface, place the icon inside a solid badge. These are the only approved shapes.
       </H>
       <div className="badges">
         {tiles.map((x, i) => (
@@ -757,7 +778,7 @@ function DosDonts({ ctx }: { ctx: Ctx }) {
   const dos: { bg: string; logo?: Logo; text: string }[] = [
     { bg: '#FFFFFF', logo, text: 'Use the full-colour logo on light backgrounds.' },
     { bg: busyBg, logo, text: 'Use the white logo on dark or colour-conflicting backgrounds.' },
-    { bg: '#FFFFFF', logo: d.mark, text: 'Use the logomark on its own in small spaces.' },
+    { bg: '#FFFFFF', logo: d.mark, text: 'Use the icon on its own in small spaces.' },
     { bg: d.primary, logo, text: `Use the ${versionFor(logo.svg, d.primary).version === 'white' ? 'white' : 'approved'} logo on ${nameOf(b.colors, d.primary)}.` },
   ]
   const donts = [m.outline, m.effects, m.stretch, m.recolour]
@@ -1197,7 +1218,7 @@ function Patterns({ ctx }: { ctx: Ctx }) {
   return (
     <div className="stack">
       <H kicker="Brand elements" title="Patterns">
-        Built from the logomark. Use patterns as a quiet background texture on covers, packaging, merchandise and social posts, keeping contrast low so content
+        Built from the icon. Use patterns as a quiet background texture on covers, packaging, merchandise and social posts, keeping contrast low so content
         stays readable.
       </H>
       <div className="patterns">
@@ -1440,6 +1461,29 @@ function Applications({ ctx }: { ctx: Ctx }) {
       </Surface>
       <div className="apps-social">
         <SocialPost {...ctx} />
+      </div>
+    </div>
+  )
+}
+
+function PhotoApplications({ ctx, mockups, first }: { ctx: Ctx; mockups: PhotoMockup[]; first: boolean }) {
+  const contentW = (ctx.b.pageFormat === 'a4' ? 297 - 30 : 320 - 32) * MM
+  const w = (contentW - 6 * MM) / 2
+  const h = (w * 9) / 16
+  return (
+    <div className={`apps-photo ${first ? '' : 'apps-photo-more'}`}>
+      {first ? (
+        <H kicker="Applications" title="The brand in use">
+          The identity applied wherever people meet {ctx.b.name}: on screen, in print and in the spaces where the work happens.
+        </H>
+      ) : null}
+      <div className="apps-photo-grid">
+        {mockups.map((m) => (
+          <figure key={m.id}>
+            <PhotoScene ctx={ctx} mockup={m} width={w} height={h} />
+            <figcaption>{m.title}</figcaption>
+          </figure>
+        ))}
       </div>
     </div>
   )
