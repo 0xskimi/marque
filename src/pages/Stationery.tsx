@@ -44,40 +44,53 @@ export function ArtBox({
 
 const fonts = (ctx: Ctx) => ({ head: fontStack(ctx.d.heading), body: fontStack(ctx.d.body) })
 
+/** Address on up to three lines: street, district, then city and country. */
+export function addressLines(address: string) {
+  const parts = address.split(',').map((x) => x.trim()).filter(Boolean)
+  if (parts.length <= 3) return parts
+  return [parts.slice(0, 2).join(', '), ...parts.slice(2, -2), parts.slice(-2).join(', ')]
+}
+
+/** Front: brand colour with the primary logo centred, nothing else. */
 export function CardFront({ ctx, bleed = 0 }: { ctx: Ctx; bleed?: number }) {
   const { b, d } = ctx
   const [w, h] = cardDims(b)
   return (
     <ArtBox w={w} h={h} bleed={bleed} bg={d.primary}>
-      <div className="to-bleed">
-        <Pattern mark={d.mark} bg={d.primary} style={b.pattern === 'none' ? 'none' : 'crop'} opacity={b.patternOpacity} />
-      </div>
-      <div style={{ position: 'absolute', left: '30%', right: '30%', top: '24%', bottom: '24%' }}>
+      <div style={{ position: 'absolute', left: '22%', right: '22%', top: '30%', bottom: '30%' }}>
         <LogoImg logo={d.mainLogo} />
       </div>
     </ArtBox>
   )
 }
 
+/** Back: name and title top left, direct contacts bottom left, office address bottom right. */
 export function CardBack({ ctx, bleed = 0 }: { ctx: Ctx; bleed?: number }) {
   const { b, d } = ctx
   const [w, h] = cardDims(b)
   const f = fonts(ctx)
   const p = b.person
+  const ink = d.dark
+  const small: CSSProperties = { fontFamily: f.body, fontSize: '6.4pt', lineHeight: 1.4, color: ink }
   return (
     <ArtBox w={w} h={h} bleed={bleed} bg="#FFFFFF">
-      <div style={{ position: 'absolute', left: '6mm', top: '6mm', width: '9mm', height: '9mm' }}>
-        <LogoImg logo={d.mark} style={{ objectPosition: 'left top' }} />
+      <div style={{ position: 'absolute', left: '6.5mm', top: '6.5mm', right: '6.5mm' }}>
+        <div style={{ fontFamily: f.head, fontSize: '11pt', fontWeight: 600, color: d.primary, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{p.name || 'Your Name'}</div>
+        <div style={{ fontFamily: f.body, fontSize: '8pt', color: ink, marginTop: '0.6mm' }}>{p.title || 'Job title'}</div>
       </div>
-      <div style={{ position: 'absolute', left: '6mm', bottom: '6mm', right: '6mm', fontFamily: f.body, fontSize: '6.2pt', lineHeight: 1.45, color: '#222' }}>
-        <div style={{ fontFamily: f.head, fontSize: '10pt', fontWeight: 700, color: d.primary, lineHeight: 1.1 }}>{p.name || 'Your Name'}</div>
-        <div style={{ marginBottom: '2.5mm', color: '#666' }}>{p.title || 'Job title'}</div>
+      <div style={{ ...small, position: 'absolute', left: '6.5mm', bottom: '6.5mm' }}>
         <div>{p.phone || b.contactPhone}</div>
         <div>{p.email || b.contactEmail}</div>
         <div>{b.website}</div>
-        {b.address && <div style={{ color: '#666' }}>{b.address}</div>}
       </div>
-      <div className="to-bleed" style={{ left: 'auto', width: 'calc(2.2mm + var(--bleed))', background: d.primary }} />
+      {b.address && (
+        <div style={{ ...small, position: 'absolute', right: '6.5mm', bottom: '6.5mm', textAlign: 'right' }}>
+          <div>{b.name} HQ</div>
+          {addressLines(b.address).map((l) => (
+            <div key={l}>{l}</div>
+          ))}
+        </div>
+      )}
     </ArtBox>
   )
 }

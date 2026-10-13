@@ -2,7 +2,7 @@ export type LogoSlot = 'primary' | 'logomark' | 'wordmark' | 'secondary'
 
 export const LOGO_SLOTS: { id: LogoSlot; label: string; hint: string }[] = [
   { id: 'primary', label: 'Primary logo', hint: 'Full lockup (mark + wordmark)' },
-  { id: 'logomark', label: 'Logomark', hint: 'Symbol on its own' },
+  { id: 'logomark', label: 'Icon', hint: 'Symbol on its own' },
   { id: 'wordmark', label: 'Wordmark', hint: 'Logotype on its own' },
   { id: 'secondary', label: 'Secondary lockup', hint: 'Stacked or alternate layout' },
 ]

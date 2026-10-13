@@ -5,7 +5,7 @@ import { getLibrary, saveLibrary } from './library'
 
 // Fly Eagle ships as the default project: loaded once from public/brands, with its photos and mockups.
 // Bump the version when the kit changes so browsers that already have it pick up the new one.
-const FLAG = 'marque.seed.flyeagle.v2'
+const FLAG = 'marque.seed.flyeagle.v3'
 const ID = 'flyeagle'
 let running: Promise<void> | null = null
 

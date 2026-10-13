@@ -4,10 +4,18 @@ import { versionFor } from '../lib/derive'
 import { inkOn } from '../lib/color'
 import { fontStack } from '../lib/fonts'
 import { LogoImg } from './common'
+import { CardBack, CardFront } from './Stationery'
+import type { Ctx } from './Guidelines'
 
 interface P {
   b: Brand
   d: Derived
+}
+
+/** The brand's own domain, from its website field, else a stand-in built from the name. */
+function domain(b: Brand) {
+  const site = (b.website || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+  return site || `${b.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'brand'}.com`
 }
 
 function onBg(d: Derived, bg: string, which: 'main' | 'mark' = 'mark') {
@@ -15,26 +23,16 @@ function onBg(d: Derived, bg: string, which: 'main' | 'mark' = 'mark') {
   return { logo, version: logo ? versionFor(logo.svg, bg).version : 'full' }
 }
 
+/** The real card artwork, front and back, fanned out. */
 export function BusinessCards({ b, d }: P) {
-  const front = onBg(d, d.primary)
-  const backLogo = d.logo('wordmark') ?? d.mainLogo
+  const ctx = { b, d } as Ctx
   return (
     <div className="mk-cards">
-      <div className="mk-card" style={{ background: d.primary }}>
-        <div className="mk-card-mark">
-          <LogoImg logo={front.logo} version={front.version} />
-        </div>
+      <div className="mk-card">
+        <CardFront ctx={ctx} />
       </div>
-      <div className="mk-card mk-card-back" style={{ background: d.light, color: d.dark }}>
-        <div className="mk-card-wm">
-          <LogoImg logo={backLogo} version={backLogo ? versionFor(backLogo.svg, d.light).version : 'full'} />
-        </div>
-        <div className="mk-card-info" style={{ fontFamily: fontStack(d.body) }}>
-          <strong style={{ fontFamily: fontStack(d.heading) }}>Alex Morgan</strong>
-          <span>Founder</span>
-          <span style={{ marginTop: '2mm' }}>alex@{b.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'brand'}.com</span>
-          <span>+1 555 010 2030</span>
-        </div>
+      <div className="mk-card mk-card-back">
+        <CardBack ctx={ctx} />
       </div>
     </div>
   )
@@ -75,31 +73,46 @@ export function SocialPost({ b, d }: P) {
   )
 }
 
+/** Website card: the address on a brand-colour band, then the browser tab and address bar it opens in. */
 export function WebsiteHero({ b, d }: P) {
-  const head = d.light
-  const nav = onBg(d, head, 'main')
+  const tile = d.dark
+  const mark = onBg(d, tile, 'mark')
+  const fav = onBg(d, '#FFFFFF', 'mark')
+  const url = `www.${domain(b).replace(/^www\./, '')}`
   return (
-    <div className="mk-web">
-      <div className="mk-web-chrome">
-        <i /> <i /> <i />
-        <span>{b.name.toLowerCase().replace(/\s+/g, '')}.com</span>
-      </div>
-      <div className="mk-web-nav" style={{ background: head, color: inkOn(head), fontFamily: fontStack(d.body) }}>
-        <div className="mk-web-logo">
-          <LogoImg logo={nav.logo} version={nav.version} style={{ objectPosition: 'left center' }} />
+    <div className="mk-web" style={{ fontFamily: fontStack(d.body) }}>
+      <div className="mk-web-band" style={{ background: d.primary }}>
+        <div className="mk-web-pill">
+          <span className="mk-web-tile" style={{ background: tile }}>
+            <LogoImg logo={mark.logo} version={mark.version} />
+          </span>
+          {url}
         </div>
-        <span>Product</span>
-        <span>About</span>
-        <span className="mk-web-cta" style={{ background: d.primary, color: inkOn(d.primary) }}>
-          Get started
-        </span>
       </div>
-      <div className="mk-web-hero" style={{ background: d.primary, color: inkOn(d.primary) }}>
-        <div style={{ fontFamily: fontStack(d.heading) }} className="mk-web-h1">
-          {b.tagline || `Welcome to ${b.name}`}
-        </div>
-        <div style={{ fontFamily: fontStack(d.body) }} className="mk-web-p">
-          {(b.about || '').split('.').slice(0, 1).join('.') || 'A short line about what you do.'}
+      <div className="mk-web-desk">
+        <div className="mk-web-win">
+          <div className="mk-web-tabs">
+            <span className="mk-web-dots">
+              <i /> <i /> <i />
+            </span>
+            <span className="mk-web-tab">
+              <span className="mk-web-fav">
+                <LogoImg logo={fav.logo} version={fav.version} />
+              </span>
+              {b.name}
+            </span>
+          </div>
+          <div className="mk-web-bar">
+            <span className="mk-web-nav">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 2.5 4 6l3.5 3.5" /></svg>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 2.5 8 6 4.5 9.5" /></svg>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 6a3.5 3.5 0 1 1-1-2.5M9.5 2v2h-2" /></svg>
+            </span>
+            <span className="mk-web-addr">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 5.5h5v4h-5zM4.5 5.5V4a1.5 1.5 0 0 1 3 0v1.5" /></svg>
+              {url}
+            </span>
+          </div>
         </div>
       </div>
     </div>
