@@ -616,3 +616,4 @@ figcaption { font-size: 7.5pt; color: var(--muted); }
 
 .s-ethos-intro { margin: 0; font-family: var(--head); font-size: 20pt; line-height: 1.25; font-weight: 500; max-width: 220mm; letter-spacing: -0.01em; }
 .apps-photo-more { justify-content: center; }
+.rationale-mark-sm { width: 60%; height: 55%; }

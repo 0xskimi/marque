@@ -499,6 +499,9 @@ function Architecture({ ctx }: { ctx: Ctx }) {
 
 function Rationale({ ctx }: { ctx: Ctx }) {
   const { b, d } = ctx
+  // Only brands that ship a stacked lockup show the icon over the wordmark here.
+  const word = d.logo('wordmark')
+  const stacked = !!b.logos.secondary && !!word && word !== d.mark
   return (
     <div className="split">
       <div className="g-heading">
@@ -512,9 +515,14 @@ function Rationale({ ctx }: { ctx: Ctx }) {
       </div>
       <div className="stage stage-gridlines">
         <div className="rationale-art">
-          <div className="rationale-mark">
+          <div className={stacked ? 'rationale-mark rationale-mark-sm' : 'rationale-mark'}>
             <LogoImg logo={d.mark} />
           </div>
+          {stacked && (
+            <div className="rationale-word">
+              <LogoImg logo={word} />
+            </div>
+          )}
         </div>
       </div>
     </div>
